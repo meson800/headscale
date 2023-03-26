@@ -29,6 +29,7 @@ API: Machine is now Node [#1553](https://github.com/juanfont/headscale/pull/1553
 ### Changes
 
 Make the OIDC callback page better [#1484](https://github.com/juanfont/headscale/pull/1484)
+Allow use of the username OIDC claim [#1287](https://github.com/juanfont/headscale/pull/1287)
 SSH support [#1487](https://github.com/juanfont/headscale/pull/1487)
 State management has been improved [#1492](https://github.com/juanfont/headscale/pull/1492)
 Use error group handling to ensure tests actually pass [#1535](https://github.com/juanfont/headscale/pull/1535) based on [#1460](https://github.com/juanfont/headscale/pull/1460)
