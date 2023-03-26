@@ -242,7 +242,7 @@ func (h *Headscale) OIDCCallback(
 		return
 	}
 
-	userName, err := getUserName(writer, claims, h.cfg.OIDC.StripEmaildomain)
+	userName, err := getUserName(writer, claims, h.cfg.OIDC.UseUsernameClaim, h.cfg.OIDC.StripEmaildomain)
 	if err != nil {
 		return
 	}
@@ -259,7 +259,7 @@ func (h *Headscale) OIDCCallback(
 		return
 	}
 
-	content, err := renderOIDCCallbackTemplate(writer, claims)
+	content, err := renderOIDCCallbackTemplate(writer, userName)
 	if err != nil {
 		return
 	}
@@ -539,9 +539,14 @@ func (h *Headscale) validateNodeForOIDCCallback(
 			Str("expiresAt", fmt.Sprintf("%v", expiry)).
 			Msg("successfully refreshed node")
 
+		userName, err := getUserName(writer, claims, h.cfg.OIDC.UseUsernameClaim, h.cfg.OIDC.StripEmaildomain)
+		if err != nil {
+			userName = "unknown"
+		}
+
 		var content bytes.Buffer
 		if err := oidcCallbackTemplate.Execute(&content, oidcCallbackTemplateConfig{
-			User: claims.Email,
+			User: userName,
 			Verb: "Reauthenticated",
 		}); err != nil {
 			log.Error().
@@ -576,18 +581,30 @@ func (h *Headscale) validateNodeForOIDCCallback(
 func getUserName(
 	writer http.ResponseWriter,
 	claims *IDTokenClaims,
+	useUsernameClaim bool,
 	stripEmaildomain bool,
 ) (string, error) {
+	var claim string
+	if useUsernameClaim {
+		claim = claims.Username
+	} else {
+		claim = claims.Email
+	}
 	userName, err := util.NormalizeToFQDNRules(
-		claims.Email,
+		claim,
 		stripEmaildomain,
 	)
 	if err != nil {
-		util.LogErr(err, "couldn't normalize email")
-
+		var friendlyErrMsg string
+		if useUsernameClaim {
+			friendlyErrMsg = "couldn't normalize username (preferred_username OIDC claim)"
+		} else {
+			friendlyErrMsg = "couldn't normalize username (email OIDC claim)"
+		}
+		log.Error().Err(err).Caller().Msgf(friendlyErrMsg)
 		writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 		writer.WriteHeader(http.StatusInternalServerError)
-		_, werr := writer.Write([]byte("couldn't normalize email"))
+		_, werr := writer.Write([]byte(friendlyErrMsg))
 		if werr != nil {
 			util.LogErr(err, "Failed to write response")
 		}
@@ -668,11 +685,11 @@ func (h *Headscale) registerNodeForOIDCCallback(
 
 func renderOIDCCallbackTemplate(
 	writer http.ResponseWriter,
-	claims *IDTokenClaims,
+	user string,
 ) (*bytes.Buffer, error) {
 	var content bytes.Buffer
 	if err := oidcCallbackTemplate.Execute(&content, oidcCallbackTemplateConfig{
-		User: claims.Email,
+		User: user,
 		Verb: "Authenticated",
 	}); err != nil {
 		log.Error().
