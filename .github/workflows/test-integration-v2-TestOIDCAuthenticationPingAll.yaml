@@ -33,7 +33,6 @@ jobs:
         if: ${{ env.ACT }} || steps.changed-files.outputs.any_changed == 'true'
 
       - name: Run general integration tests
-        if: steps.changed-files.outputs.any_changed == 'true'
         run: |
             nix develop --command -- docker run \
               --tty --rm \
