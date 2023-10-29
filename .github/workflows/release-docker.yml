@@ -1,6 +1,9 @@
 ---
 name: Release Docker
 
+permissions:
+  packages: write
+
 on:
   push:
     tags:
