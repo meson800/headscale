@@ -202,6 +202,7 @@ func TestOIDCEmailGrant(t *testing.T) {
 	t.Logf("%d successful pings out of %d", success, len(allClients)*len(allIps))
 }
 
+
 func TestOIDCAuthenticationPingAll(t *testing.T) {
 	IntegrationSkip(t)
 	t.Parallel()
